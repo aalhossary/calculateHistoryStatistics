@@ -9,25 +9,15 @@ import hossary.Utilities.Atom;
 
 
 public class closenessCount {
+	private static final int STEPS = 500;
 	long count = 0;
-	Vector<Long> ThreadCount;
 	Vector<Vector<Long>> threadsCount;
 	PrintStream out;
 	double cutOff= Math.pow(5, 2);
-	private long[][] sums = new long[64][64];
+	long[][] sums = new long[64][64];
+	Vector<Long[]> historySums= new Vector<Long[]>();
 	static Vector<Vector<Atom>> allFilesVector= new Vector<Vector<Atom>>();
 	
-//	public static class Atom{
-//		String atomType;
-//		int id;
-//		double x, y, z;
-//		@Override
-//		public String toString() {
-//			return ""+x+", "+y+", "+z;
-//		}
-//	}
-
-
 	public closenessCount(String folder) {
 		try {
 			allFilesVector = getFiles(folder);
@@ -36,9 +26,11 @@ public class closenessCount {
 		}
 		System.out.println("finished reading");
 //		countAccordingToNafisa();
-		countUsing2DArray();
+//		countUsing2DArray();
+		countUsingVectorOfArray();
 		System.out.println("finished counting");
-		writeResultFromArray();
+//		writeResultFromArray();
+		writeResultFromVectorOfArrayOfLongs();
 		System.out.println("finished writing");
 
 	}
@@ -70,30 +62,65 @@ public class closenessCount {
 		}
 		sums[63][63]=allFilesVector.get(63).size()*allFilesVector.get(63).size();
 	}
-//	public void countAccordingToNafisa() {
-//		for (int i = 0; i< allFilesVector.size()-1; i++){
-//			Vector<Atom> firstVAtom = allFilesVector.get(i);
-//			for (int j = i+1; j<allFilesVector.size(); j++){
-//				Vector<Atom> secondVAtom = allFilesVector.get(j);
-//				count=0;
-//				for (int k = 0; k<firstVAtom.size(); k++){
-//					Atom firstAtom = firstVAtom.get(k);
-//					for(int l=0; l<secondVAtom.size(); l++){
-//						Atom secondAtom = firstVAtom.get(l);
-//						if(areNear(firstAtom, secondAtom)){
-//							count++;
-//						}
-//					}
-//				}
-//				//save the count
-//				ThreadCount.add(count);
-//				threadsCount.add(ThreadCount);
-//			}
-//		}
-//	}
-
-
-
+	public void countUsingVectorOfArray() {
+		//find max length
+		int maxLength=0;
+		for (Vector<Atom> vector : allFilesVector) {
+			if (maxLength < vector.size()) {
+				maxLength=vector.size();
+			}
+		}
+		
+		//prepare vector for usage
+		for (int i = 0; i < maxLength; i+=STEPS) {
+			historySums.addElement(new Long[64]);
+		}
+		
+		//now count and fill
+		//I'll start with K, to have early results
+		for (int k = 0; k < maxLength; k+=STEPS){
+			Long[] counts= historySums.elementAt(k/STEPS);
+			for (int i = 0; i< allFilesVector.size(); i++){
+				System.out.println("counting "+i);
+				count=0;
+				Vector<Atom> firstVAtom = allFilesVector.get(i);
+				for (int j = 0; j<allFilesVector.size(); j++){
+					if (i == j) {
+						//TODO set to maximum
+//						sums[i][i]=firstVAtom.size()*secondVAtom.size();
+						continue;
+					}
+					Vector<Atom> secondVAtom = allFilesVector.get(j);
+					if (k >= firstVAtom.size())
+						continue;
+					for(int k1= k; k1 < k+STEPS;k1++){
+						if (k1 >= firstVAtom.size())
+							continue;
+						Atom firstAtom = firstVAtom.get(k1);
+						for(int l=0; l< k1; l++){
+							if(l >= secondVAtom.size())
+								continue;
+							Atom secondAtom = secondVAtom.get(l);
+							if(areNear(firstAtom, secondAtom)){
+								count++;
+							}
+						}
+					}
+				}
+				//save the count
+				counts[i]=count;
+			}
+			//output (extra)
+			System.out.println("output step"+ k);
+			for (Long[] longs : historySums) {
+				for (Long l : longs) {
+					System.out.print(l);
+					System.out.print('\t');
+				}
+				System.out.println();
+			}
+		}
+	}
 
 	public boolean areNear(Atom firstAtom, Atom secondAtom) {
 		double x2 = firstAtom.x - secondAtom.x;
@@ -102,8 +129,6 @@ public class closenessCount {
 		double xyz2 = x2*x2+y2*y2+z2*z2;
 		return xyz2 <= cutOff;
 	}
-
-
 
 
 	public static Vector<Vector<Atom>> getFiles(String folderName) throws FileNotFoundException{
@@ -147,56 +172,35 @@ public class closenessCount {
 	}
 
 
-
-//	public Vector<Vector<Long>> compareDistance(Vector<Atom> vAtom, int vectorIndex, Vector<Vector<Atom>> filesVector){
-//		for(int i=0; i<vAtom.size(); i++){
-//			for (int j = vectorIndex+1; j<filesVector.size(); j++){
-//				for (int k = 0; k<filesVector.get(j).size(); k++){
-//					double x2=filesVector.get(j).get(k).x - vAtom.get(i).x;
-//					double y2 = filesVector.get(j).get(i).y - vAtom.get(i).y;
-//					double z2 = filesVector.get(j).get(i).z - vAtom.get(i).z;
-//					double xyz = Math.pow(x2, 2)+Math.pow(y2, 2)+Math.pow(z2, 2);
-//					if(xyz <= cutOff){
-//						count++;
-//					}
-//				}
-//				ThreadCount.add(count);
-//			}
-//			threadsCount.add(ThreadCount);
+//	public void writeResultFromArray(){
+//		try {
+//			out= new PrintStream("ThreadsClosenessCount.txt");
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
 //		}
-//		return threadsCount;
+//		
+//		//write header
+//		for(int i = 0; i<64; i++){
+//			out.print(" Thread" + (i+1));
+//			if (i<63){
+//				out.print('\t');
+//			}			
+//		}
+//		
+//		//write results
+//		for(int i=0; i<64; i++){
+//			for(int j=0; j< 64; j++){
+//				System.out.print(sums[i][j]);
+//				if (j< 63) {
+//					System.out.print('\t');	
+//				}else {
+//					System.out.print('\n');
+//				}
+//			}
+//		}
+//		
 //	}
-
-	public void writeResultFromVectors(){
-		
-		try {
-			out= new PrintStream("ThreadsClosenessCount.txt");
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-		
-		//write header
-		for(int i = 0; i<64; i++){
-			out.print(" Thread" + (i+1));
-			if (i<63){
-				out.print('\t');
-			}			
-		}
-		
-		//write results
-		for(int i=0; i<threadsCount.size(); i++){
-			for(int j=0; j<ThreadCount.size(); j++){
-				System.out.print(ThreadCount.elementAt(j));
-				if (j<ThreadCount.size()-1){
-					System.out.print('\t');	
-				}else {
-					System.out.println('\n');
-				}
-			}}
-		
-	}
-
-	public void writeResultFromArray(){
+	public void writeResultFromVectorOfArrayOfLongs(){
 		try {
 			out= new PrintStream("ThreadsClosenessCount.txt");
 		} catch (FileNotFoundException e) {
@@ -205,36 +209,25 @@ public class closenessCount {
 
 		//write header
 		for(int i = 0; i<64; i++){
-			out.print(" Thread" + (i+1));
-			if (i<63){
-				out.print('\t');
-			}			
+			out.print("Thread " + (i+1));
+			out.print((i < 63) ? '\t' : '\n');
 		}
 
 		//write results
-		for(int i=0; i<64; i++){
-			for(int j=0; j< 64; j++){
-				System.out.print(sums[i][j]);
-				if (j< 63) {
-					System.out.print('\t');	
-				}else {
-					System.out.print('\n');
-				}
+		for (Long[] longs : historySums) {
+			for (int i = 0; i < longs.length; i++) {
+				Long l = longs[i];
+				out.print(l);
+				out.print((i < 63) ? '\t' : '\n');
 			}
 		}
-
 	}
-
-
-
-
 
 	public static void main(String[] args) {
 //	String folder = "D:\\Amr\\Qvina02_project\\statistical_analysis for paper\\EL1000_test";
 		String folder = Utilities.getParameter(args, "-folder", ".", null);
 //		closenessCount cc = 
 		new closenessCount(folder);
-
 	}
 
 }
