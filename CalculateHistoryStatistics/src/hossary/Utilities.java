@@ -1,10 +1,11 @@
+package hossary;
 
 public abstract class Utilities {
 	
 	public static class Atom{
 		String atomType;
 		int id;
-		double x, y, z;
+		public double x, y, z;
 	}
 
 	
