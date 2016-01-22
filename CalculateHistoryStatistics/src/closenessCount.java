@@ -65,8 +65,10 @@ public class closenessCount {
 				//save the count
 				sums[i][j]=count;
 				sums[j][i]=count;
+				sums[i][i]=firstVAtom.size()*secondVAtom.size();
 			}
 		}
+		sums[63][63]=allFilesVector.get(63).size()*allFilesVector.get(63).size();
 	}
 //	public void countAccordingToNafisa() {
 //		for (int i = 0; i< allFilesVector.size()-1; i++){
@@ -216,7 +218,7 @@ public class closenessCount {
 				if (j< 63) {
 					System.out.print('\t');	
 				}else {
-					System.out.println('\n');
+					System.out.print('\n');
 				}
 			}
 		}
